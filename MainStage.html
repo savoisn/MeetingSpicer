@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Winner Announcement</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background: linear-gradient(135deg, #1a73e8, #8ab4f8);
+      color: white;
+      text-align: center;
+    }
+    .box {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      padding: 40px 60px;
+      border-radius: 24px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+    h1 {
+      font-size: 28px;
+      margin-bottom: 8px;
+      font-weight: 400;
+      opacity: 0.9;
+    }
+    .winner-name {
+      font-size: 56px;
+      font-weight: 800;
+      margin: 16px 0;
+      letter-spacing: 1px;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+  </style>
+  <script src="https://www.gstatic.com/meetjs/addons/1.1.0/meet.addons.js"></script>
+</head>
+<body>
+
+  <div class="card box">
+    <h1>🎉 Chosen Participant</h1>
+    <div id="winnerDisplay" class="winner-name">Waiting...</div>
+  </div>
+
+  <script>
+    const CLOUD_PROJECT_NUMBER = "815597487049";
+
+    async function initMainStage() {
+      try {
+        const addon = window.meet.addon;
+
+        // Initialize Main Stage Session
+        const session = await addon.createAddonSession({
+          cloudProjectNumber: CLOUD_PROJECT_NUMBER
+        });
+
+        const mainStageClient = await session.createMainStageClient();
+
+        // Extract winner name from query string
+        const urlParams = new URLSearchParams(window.location.search);
+        const winner = urlParams.get('winner');
+
+        if (winner) {
+          document.getElementById('winnerDisplay').innerText = winner;
+        } else {
+          document.getElementById('winnerDisplay').innerText = "Ready for Draw";
+        }
+
+      } catch (err) {
+        console.error("Main Stage SDK initialization failed:", err);
+      }
+    }
+
+    window.addEventListener('load', initMainStage);
+  </script>
+</body>
+</html>

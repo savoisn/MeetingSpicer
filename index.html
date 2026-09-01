@@ -2,8 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Random Participant Picker</title>
+  <title>Random Picker - Side Panel</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -16,21 +15,21 @@
     .card {
       background: white;
       border-radius: 12px;
-      padding: 20px;
+      padding: 16px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-      max-width: 340px;
+      max-width: 320px;
       margin: 0 auto;
     }
     h3 { margin-top: 0; color: #1a73e8; }
-    .badge {
-      display: inline-block;
-      background: #e8f0fe;
-      color: #1a73e8;
-      padding: 6px 12px;
-      border-radius: 16px;
+    textarea {
+      width: 90%;
+      height: 120px;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      padding: 8px;
       font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
+      resize: vertical;
     }
     button {
       padding: 12px 20px;
@@ -42,162 +41,95 @@
       background: #1a73e8;
       color: white;
       width: 100%;
-      transition: background 0.2s;
+      margin-bottom: 8px;
     }
     button:hover { background: #1557b0; }
-    #result {
-      margin-top: 20px;
-      font-size: 18px;
-      font-weight: 600;
-      color: #1e8e3e;
-      min-height: 28px;
+    .secondary-btn {
+      background: #f1f3f4;
+      color: #3c4043;
     }
-    .user-section {
-      margin-top: 20px;
-      text-align: left;
-      border-top: 1px solid #dadce0;
-      padding-top: 12px;
-    }
-    .user-section h4 {
-      margin: 0 0 8px 0;
-      font-size: 14px;
+    .secondary-btn:hover { background: #e8eaed; }
+    #status {
+      margin-top: 12px;
+      font-size: 13px;
       color: #5f6368;
     }
-    ul {
-      list-style-type: none;
-      padding: 0;
-      margin: 0;
-      max-height: 120px;
-      overflow-y: auto;
-    }
-    li {
-      padding: 6px 10px;
-      font-size: 13px;
-      background: #f1f3f4;
-      border-radius: 4px;
-      margin-bottom: 4px;
-      display: flex;
-      align-items: center;
-    }
-    li::before {
-      content: "•";
-      color: #34a853;
-      font-size: 18px;
-      margin-right: 8px;
-    }
   </style>
-  <!-- Google Meet Add-ons SDK CDN -->
   <script src="https://www.gstatic.com/meetjs/addons/1.1.0/meet.addons.js"></script>
 </head>
 <body>
 
   <div class="card">
     <h3>🎲 Participant Picker</h3>
-    <div id="client-count" class="badge">Connected Co-Doing Clients: 0</div>
+    <p style="font-size: 12px; color: #5f6368; margin-top: -8px;">
+      Enter names below (one per line)
+    </p>
     
-    <button id="pick-btn" onclick="pickWinner()">Pick Someone!</button>
+    <textarea id="namesInput" placeholder="Alice&#10;Bob&#10;Charlie"></textarea>
     
-    <div id="result">Waiting for selection...</div>
+    <button onclick="pickAndShowOnMainStage()">Pick & Show to All</button>
+    <button class="secondary-btn" onclick="openMainStageOnly()">Open Shared Screen Only</button>
 
-    <div class="user-section">
-      <h4>Connected Users:</h4>
-      <ul id="user-list">
-        <li style="color: #80868b;">No users connected...</li>
-      </ul>
-    </div>
+    <div id="status">Initializing SDK...</div>
   </div>
 
   <script>
     const CLOUD_PROJECT_NUMBER = "815597487049";
 
     let session;
-    let coDoingClient;
-    let localUserName = "";
-    let activeRoster = [];
+    let sidePanelClient;
 
     async function init() {
       try {
         const addon = window.meet.addon;
 
-        // 1. Create Session
+        // 1. Initialize session
         session = await addon.createAddonSession({
           cloudProjectNumber: CLOUD_PROJECT_NUMBER
         });
 
-        // 2. Initialize Co-Doing Client for shared real-time state
-        coDoingClient = await session.createCoDoingClient({
-          onCoDoingStateChanged: (state) => {
-            if (!state) return;
-
-            // Update roster and client count
-            if (state.roster) {
-              activeRoster = state.roster;
-              updateUserUI(activeRoster);
-            }
-
-            // Sync winner display across all connected clients
-            if (state.winner) {
-              document.getElementById('result').innerText = `🎉 Chosen: ${state.winner}`;
-            }
-          }
-        });
-
-        // 3. Prompt user for their display name
-        localUserName = prompt("Enter your display name for the draw:", "Participant") || "Anonymous";
-
-        // 4. Register local user into the shared Co-Doing state
-        if (!activeRoster.includes(localUserName)) {
-          activeRoster.push(localUserName);
-        }
-
-        await coDoingClient.setCoDoingState({
-          roster: activeRoster
-        });
-
+        // 2. Create Side Panel Client
+        sidePanelClient = await session.createSidePanelClient();
+        document.getElementById('status').innerText = "Ready to pick!";
       } catch (err) {
         console.error("Meet SDK setup failed:", err);
-        document.getElementById('result').innerText = "SDK Initialization Error";
+        document.getElementById('status').innerText = "SDK Setup Failed";
       }
     }
 
-    // Update UI elements with connected users & total count
-    function updateUserUI(users) {
-      const countEl = document.getElementById('client-count');
-      const listEl = document.getElementById('user-list');
+    async function pickAndShowOnMainStage() {
+      if (!sidePanelClient) return;
 
-      countEl.innerText = `Connected Co-Doing Clients: ${users.length}`;
-      listEl.innerHTML = "";
+      const rawText = document.getElementById('namesInput').value;
+      const names = rawText.split('\n').map(n => n.trim()).filter(n => n.length > 0);
 
-      if (users.length === 0) {
-        listEl.innerHTML = '<li style="color: #80868b;">No users connected...</li>';
+      if (names.length === 0) {
+        alert("Please enter at least one participant name.");
         return;
       }
 
-      users.forEach(user => {
-        const li = document.createElement('li');
-        li.innerText = user;
-        listEl.appendChild(li);
-      });
+      // Pick a random winner
+      const randomIndex = Math.floor(Math.random() * names.length);
+      const chosenPerson = names[randomIndex];
+
+      // Build main stage URL containing winner as query parameter
+      const mainStageUrl = new URL('MainStage.html', window.location.href);
+      mainStageUrl.searchParams.set('winner', chosenPerson);
+
+      try {
+        // Promote the view to Main Stage so ALL participants see it
+        await sidePanelClient.loadMainStageUrl(mainStageUrl.toString());
+        document.getElementById('status').innerText = `Displayed: ${chosenPerson}`;
+      } catch (err) {
+        console.error("Failed to load Main Stage:", err);
+        document.getElementById('status').innerText = "Error opening Main Stage";
+      }
     }
 
-    async function pickWinner() {
-      if (!coDoingClient) return;
-
-      if (activeRoster.length === 0) {
-        alert("No connected users in the draw.");
-        return;
-      }
-
-      // Select random user from the active roster
-      const randomIndex = Math.floor(Math.random() * activeRoster.length);
-      const chosenPerson = activeRoster[randomIndex];
-
-      // Broadcast selection to ALL connected Co-Doing clients
-      await coDoingClient.setCoDoingState({
-        roster: activeRoster,
-        winner: chosenPerson,
-        timestamp: Date.now()
-      });
+    async function openMainStageOnly() {
+      if (!sidePanelClient) return;
+      const mainStageUrl = new URL('MainStage.html', window.location.href);
+      await sidePanelClient.loadMainStageUrl(mainStageUrl.toString());
     }
 
     window.addEventListener('load', init);
