@@ -1,14 +1,14 @@
 {
   "addOns": {
     "common": {
-      "name": "Random Participant Picker",
-      "logoUrl": "https://www.gstatic.com/images/branding/product/1x/meet_2020q4_48dp.png"
+      "name": "MeetSpicer",
+      "logoUrl": "https://app.pix.fr/images/pix-logo.svg"
     },
     "meet": {
       "web": {
-        "sidePanelUrl": "https://YOUR-HOSTED-DOMAIN.com/Index.html",
+        "sidePanelUrl": "https://savoisn.github.io/MeetingSpicer/",
         "addOnOrigins": [
-          "https://YOUR-HOSTED-DOMAIN.com"
+          "https://savoisn.github.io"
         ]
       }
     }
