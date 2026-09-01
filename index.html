@@ -54,28 +54,39 @@
   </div>
 
   <script>
+  // CONFIGURATION: Set your numeric Google Cloud Project Number here
+    const CLOUD_PROJECT_NUMBER = "815597487049";
+
     let session;
     let sidePanelClient;
+    let mainAppClient;
 
     async function init() {
       try {
         const addon = window.meet.addon;
-        // Initializes the session preserving URL parameters passed by Meet
+
+        // Initialize session using the project number variable
         session = await addon.createAddonSession({
-          cloudProjectNumber: "815597487049" 
+          cloudProjectNumber: CLOUD_PROJECT_NUMBER
         });
+
         sidePanelClient = await session.createSidePanelClient();
+        mainAppClient = await session.createMeetMainAppClient();
+
+        console.log("Meet SDK successfully initialized!");
       } catch (err) {
         console.error("Meet SDK setup failed:", err);
-        document.getElementById('result').innerText = "Error initializing Meet SDK.";
+        document.getElementById('result').innerText = "SDK Initialization Error";
       }
     }
 
     async function pickWinner() {
-      if (!session) return;
+      if (!mainAppClient) return;
 
       try {
-        const participants = await session.getParticipants();
+        const response = await mainAppClient.getMeetingParticipants();
+        const participants = response.participants;
+
         if (!participants || participants.length === 0) {
           alert("No participants detected.");
           return;
