@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Random Picker - Main Stage</title>
+  <title>Random Picker - Main Stage (mock)</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -15,6 +15,16 @@
       background: linear-gradient(135deg, #1a73e8, #8ab4f8);
       color: white;
       text-align: center;
+    }
+    .mock-banner {
+      position: fixed;
+      top: 12px;
+      background: #fef7e0;
+      color: #b06000;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 8px;
     }
     .box {
       background: rgba(255, 255, 255, 0.15);
@@ -37,16 +47,18 @@
       text-shadow: 0 2px 10px rgba(0,0,0,0.2);
     }
   </style>
-  <script src="https://www.gstatic.com/meetjs/addons/1.1.0/meet.addons.js"></script>
-  <script src="shared.js"></script>
+  <script src="mock-meet-sdk.js"></script>
+  <script src="../shared.js"></script>
 </head>
 <body>
+
+  <div class="mock-banner">🧪 MOCK MODE — not running inside Meet</div>
 
   <div class="box">
     <h1>🎉 Chosen Participant</h1>
     <div id="winnerDisplay" class="winner-name">Waiting for a pick…</div>
   </div>
 
-  <script src="mainstage.js"></script>
+  <script src="../mainstage.js"></script>
 </body>
 </html>

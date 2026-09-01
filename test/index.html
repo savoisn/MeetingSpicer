@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Random Picker</title>
+  <title>Random Picker (mock)</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -10,6 +10,16 @@
       padding: 16px;
       background-color: #f8f9fa;
       color: #202124;
+    }
+    .mock-banner {
+      background: #fef7e0;
+      color: #b06000;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+      padding: 6px;
+      border-radius: 8px;
+      margin-bottom: 10px;
     }
     .card {
       background: white;
@@ -80,10 +90,12 @@
       cursor: pointer;
     }
   </style>
-  <script src="https://www.gstatic.com/meetjs/addons/1.1.0/meet.addons.js"></script>
-  <script src="shared.js"></script>
+  <script src="mock-meet-sdk.js"></script>
+  <script src="../shared.js"></script>
 </head>
 <body>
+
+  <div class="mock-banner">🧪 MOCK MODE — not running inside Meet</div>
 
   <div class="card" id="nameGate">
     <h3>🎲 Random Picker</h3>
@@ -104,6 +116,6 @@
     <span id="changeName">Not you? Change name</span>
   </div>
 
-  <script src="sidepanel.js"></script>
+  <script src="../sidepanel.js"></script>
 </body>
 </html>
