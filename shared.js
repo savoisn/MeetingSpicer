@@ -2,7 +2,7 @@
 
 // Fill this in with your Workspace Add-on's Cloud project number
 // (same one already used in your manifest.json).
-const CLOUD_PROJECT_NUMBER = 'REPLACE_WITH_YOUR_CLOUD_PROJECT_NUMBER';
+const CLOUD_PROJECT_NUMBER = '815597487049';
 
 const ROSTER_TTL_MS = 40_000;
 const HEARTBEAT_INTERVAL_MS = 15_000;
