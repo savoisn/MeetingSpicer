@@ -1,9 +1,11 @@
-let localState = emptyState();
+import { CLOUD_PROJECT_NUMBER } from './shared.js';
+import { subscribeWinner } from './firestore.js';
+
+let lastAppliedTs = 0;
 
 function showWinner(winner) {
-  if (!winner) return;
-  if (localState.winner && localState.winner.ts >= winner.ts) return;
-  localState.winner = winner;
+  if (!winner || winner.ts <= lastAppliedTs) return;
+  lastAppliedTs = winner.ts;
   document.getElementById('winnerDisplay').innerText = winner.name;
 }
 
@@ -12,17 +14,13 @@ async function init() {
     const addon = window.meet.addon;
     const session = await addon.createAddonSession({ cloudProjectNumber: CLOUD_PROJECT_NUMBER });
     const mainStageClient = await session.createMainStageClient();
+    const meetingInfo = await mainStageClient.getMeetingInfo();
 
-    // Live updates for subsequent picks, for anyone who already has this open.
-    await session.createCoDoingClient({
-      activityTitle: 'Random Picker',
-      onCoDoingStateChanged: (state) => {
-        const incoming = decodeState(state);
-        if (incoming && incoming.winner) showWinner(incoming.winner);
-      },
-    });
+    // Live updates for every pick, including ones made after this loaded.
+    subscribeWinner(meetingInfo.meetingCode, showWinner);
 
-    // Initial winner for whoever just joined via the activity prompt.
+    // Fast initial paint for whoever just joined via the activity prompt,
+    // ahead of the Firestore round-trip above.
     const startingState = await mainStageClient.getActivityStartingState();
     if (startingState && startingState.additionalData) {
       const parsed = JSON.parse(startingState.additionalData);

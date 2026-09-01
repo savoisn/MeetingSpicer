@@ -1,0 +1,22 @@
+rules_version = '2';
+
+// Paste this into Firebase Console -> Firestore Database -> Rules.
+//
+// No auth: the add-on has no sign-in flow, so access is scoped only by
+// meetingCode (format aaa-bbbb-ccc) instead of a user identity. Anyone who
+// knows a meetingCode - i.e. someone who was actually in that Meet call -
+// can read/write that meeting's roster and winner, and nothing else in the
+// database. Worst case for a guessed/leaked code is someone seeing names or
+// setting a fake winner for that one call; there is nothing more sensitive
+// reachable from here.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /meetings/{meetingCode} {
+      allow read, write: if true;
+
+      match /participants/{participantId} {
+        allow read, write: if true;
+      }
+    }
+  }
+}

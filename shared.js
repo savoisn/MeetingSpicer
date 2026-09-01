@@ -1,11 +1,24 @@
-// Shared helpers for the Meet Random Picker add-on (side panel + main stage).
+// Shared config + identity helpers for the Random Picker add-on.
 
 // Fill this in with your Workspace Add-on's Cloud project number
 // (same one already used in your manifest.json).
-const CLOUD_PROJECT_NUMBER = '815597487049';
+export const CLOUD_PROJECT_NUMBER = '815597487049';
 
-const ROSTER_TTL_MS = 40_000;
-const HEARTBEAT_INTERVAL_MS = 15_000;
+// Fill this in from the Firebase console: Project settings > General >
+// Your apps > Web app > SDK setup and configuration > Config.
+export const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDWSxQJO0G84q_kwtU149MnfW4V6PYOrWk",
+  authDomain: "meeting-spicer.firebaseapp.com",
+  projectId: "meeting-spicer",
+  storageBucket: "meeting-spicer.firebasestorage.app",
+  messagingSenderId: "929819207020",
+  appId: "1:929819207020:web:f119c945357228d409bf49",
+  measurementId: "G-0KHTG3T6N2"
+
+};
+
+export const ROSTER_TTL_MS = 40_000;
+export const HEARTBEAT_INTERVAL_MS = 15_000;
 
 const CLIENT_ID_KEY = 'meetSpicer.clientId';
 const NAME_KEY = 'meetSpicer.name';
@@ -26,7 +39,7 @@ function writeStorage(key, value) {
   }
 }
 
-function getOrCreateClientId() {
+export function getOrCreateClientId() {
   let id = readStorage(CLIENT_ID_KEY);
   if (!id) {
     id = crypto.randomUUID();
@@ -35,65 +48,10 @@ function getOrCreateClientId() {
   return id;
 }
 
-function getStoredName() {
+export function getStoredName() {
   return readStorage(NAME_KEY);
 }
 
-function storeName(name) {
+export function storeName(name) {
   writeStorage(NAME_KEY, name);
-}
-
-function emptyState() {
-  return { roster: {}, winner: null };
-}
-
-// CoDoingClient's exact wire shape (raw Uint8Array vs a {state: Uint8Array}
-// wrapper) isn't confirmed from the reference docs - decodeState tolerates
-// both, so a mismatch here is a one-line fix once verified against the SDK.
-function encodeState(obj) {
-  return new TextEncoder().encode(JSON.stringify(obj));
-}
-
-function decodeState(coDoingState) {
-  // ArrayBuffer.isView, not instanceof Uint8Array: the state can cross a
-  // realm boundary (iframe/postMessage) where instanceof against the local
-  // Uint8Array constructor would wrongly fail even for a genuine byte array.
-  const bytes = ArrayBuffer.isView(coDoingState) ? coDoingState : coDoingState && coDoingState.state;
-  if (!bytes) return null;
-  try {
-    return JSON.parse(new TextDecoder().decode(bytes));
-  } catch (err) {
-    console.error('Failed to decode CoDoing state', err);
-    return null;
-  }
-}
-
-// Union merge: for each participant/winner, keep whichever side has the
-// newer timestamp. Needed because broadcastStateUpdate is last-write-wins
-// across racing senders, and late joiners get nothing until the next
-// broadcast (there is no "give me the current state" query call).
-function mergeState(a, b) {
-  a = a || emptyState();
-  b = b || emptyState();
-  const roster = { ...a.roster };
-  for (const [id, entry] of Object.entries(b.roster || {})) {
-    if (!roster[id] || entry.lastSeen > roster[id].lastSeen) {
-      roster[id] = entry;
-    }
-  }
-  let winner = a.winner || null;
-  if (b.winner && (!winner || b.winner.ts > winner.ts)) {
-    winner = b.winner;
-  }
-  return { roster, winner };
-}
-
-function pruneRoster(roster, now) {
-  const fresh = {};
-  for (const [id, entry] of Object.entries(roster || {})) {
-    if (now - entry.lastSeen <= ROSTER_TTL_MS) {
-      fresh[id] = entry;
-    }
-  }
-  return fresh;
 }

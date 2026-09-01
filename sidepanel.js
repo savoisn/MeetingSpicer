@@ -1,18 +1,32 @@
-let session;
+import {
+  CLOUD_PROJECT_NUMBER, ROSTER_TTL_MS, HEARTBEAT_INTERVAL_MS,
+  getOrCreateClientId, getStoredName, storeName,
+} from './shared.js';
+import {
+  announcePresence, leavePresence, subscribeParticipants, subscribeWinner, setWinner,
+} from './firestore.js';
+
 let sidePanelClient;
-let coDoingClient;
 let clientId;
 let myName;
-let localState = emptyState();
+let meetingCode;
+let participants = {};
+let currentWinner = null;
 let heartbeatTimer;
 
 function setStatus(text) {
   document.getElementById('status').innerText = text;
 }
 
-function render() {
+function freshParticipants() {
   const now = Date.now();
-  const fresh = pruneRoster(localState.roster, now);
+  return Object.fromEntries(
+    Object.entries(participants).filter(([, p]) => now - p.lastSeen <= ROSTER_TTL_MS)
+  );
+}
+
+function render() {
+  const fresh = freshParticipants();
   const rosterEl = document.getElementById('roster');
   rosterEl.innerHTML = '';
 
@@ -30,47 +44,41 @@ function render() {
   document.getElementById('pickButton').disabled = entries.length === 0;
 
   const winnerEl = document.getElementById('winner');
-  if (localState.winner) {
+  if (currentWinner) {
     winnerEl.style.display = 'block';
-    winnerEl.innerText = `🎉 ${localState.winner.name}`;
+    winnerEl.innerText = `🎉 ${currentWinner.name}`;
   } else {
     winnerEl.style.display = 'none';
   }
 }
 
-function broadcast() {
-  coDoingClient.broadcastStateUpdate(encodeState(localState));
-}
-
-function touchSelfInRoster() {
-  localState.roster[clientId] = { name: myName, lastSeen: Date.now() };
-}
-
-function handleIncomingState(state) {
-  if (!state) return;
-  localState = mergeState(localState, state);
-  render();
+function announce() {
+  announcePresence(meetingCode, clientId, myName).catch((err) => {
+    console.error('Failed to announce presence:', err);
+  });
 }
 
 function joinRoster() {
-  touchSelfInRoster();
-  localState.roster = pruneRoster(localState.roster, Date.now());
-  broadcast();
-  render();
+  subscribeParticipants(meetingCode, (data) => {
+    participants = data;
+    render();
+  });
+  subscribeWinner(meetingCode, (winner) => {
+    currentWinner = winner;
+    render();
+  });
+
+  announce();
   setStatus('Ready to pick!');
 
   clearInterval(heartbeatTimer);
-  heartbeatTimer = setInterval(() => {
-    touchSelfInRoster();
-    localState.roster = pruneRoster(localState.roster, Date.now());
-    broadcast();
-    render();
-  }, HEARTBEAT_INTERVAL_MS);
+  heartbeatTimer = setInterval(announce, HEARTBEAT_INTERVAL_MS);
+
+  window.addEventListener('beforeunload', () => leavePresence(meetingCode, clientId));
 }
 
 async function pick() {
-  const now = Date.now();
-  const fresh = pruneRoster(localState.roster, now);
+  const fresh = freshParticipants();
   const ids = Object.keys(fresh);
   if (ids.length === 0) {
     setStatus('No one here yet.');
@@ -78,17 +86,22 @@ async function pick() {
   }
 
   const winnerId = ids[Math.floor(Math.random() * ids.length)];
-  const winnerName = fresh[winnerId].name;
-  localState.winner = { name: winnerName, ts: now };
-  broadcast();
-  render();
-  setStatus(`Picked: ${winnerName}`);
+  const winner = { name: fresh[winnerId].name, ts: Date.now() };
+
+  try {
+    await setWinner(meetingCode, winner);
+    setStatus(`Picked: ${winner.name}`);
+  } catch (err) {
+    console.error('Failed to record winner:', err);
+    setStatus('Pick failed - could not reach Firestore.');
+    return;
+  }
 
   try {
     const mainStageUrl = new URL('mainstage.html', window.location.href).toString();
     await sidePanelClient.startActivity({
       mainStageUrl,
-      additionalData: JSON.stringify({ winner: localState.winner }),
+      additionalData: JSON.stringify({ winner }),
     });
   } catch (err) {
     console.error('Failed to start main stage activity:', err);
@@ -132,12 +145,10 @@ async function init() {
 
   try {
     const addon = window.meet.addon;
-    session = await addon.createAddonSession({ cloudProjectNumber: CLOUD_PROJECT_NUMBER });
+    const session = await addon.createAddonSession({ cloudProjectNumber: CLOUD_PROJECT_NUMBER });
     sidePanelClient = await session.createSidePanelClient();
-    coDoingClient = await session.createCoDoingClient({
-      activityTitle: 'Random Picker',
-      onCoDoingStateChanged: (state) => handleIncomingState(decodeState(state)),
-    });
+    const meetingInfo = await sidePanelClient.getMeetingInfo();
+    meetingCode = meetingInfo.meetingCode;
   } catch (err) {
     console.error('Meet SDK setup failed:', err);
     setStatus('SDK setup failed.');
