@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Random Participant Picker</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      text-align: center;
+      padding: 24px 16px;
+      margin: 0;
+      background-color: #f8f9fa;
+      color: #202124;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+      max-width: 320px;
+      margin: 0 auto;
+    }
+    h3 { margin-top: 0; color: #1a73e8; }
+    button {
+      padding: 12px 20px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 8px;
+      border: none;
+      background: #1a73e8;
+      color: white;
+      transition: background 0.2s;
+      width: 100%;
+    }
+    button:hover { background: #1557b0; }
+    #result {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: 600;
+      color: #1e8e3e;
+      min-height: 28px;
+    }
+  </style>
+  <!-- Official Google Meet Add-ons SDK CDN -->
+  <script src="https://www.gstatic.com/meetjs/addons/1.1.0/meet.addons.js"></script>
+</head>
+<body>
+  <div class="card">
+    <h3>🎲 Participant Picker</h3>
+    <button id="pick-btn" onclick="pickWinner()">Pick Someone!</button>
+    <div id="result">Waiting for selection...</div>
+  </div>
+
+  <script>
+    let session;
+    let sidePanelClient;
+
+    async function init() {
+      try {
+        const addon = window.meet.addon;
+        // Initializes the session preserving URL parameters passed by Meet
+        session = await addon.createAddonSession({});
+        sidePanelClient = await session.createSidePanelClient();
+      } catch (err) {
+        console.error("Meet SDK setup failed:", err);
+        document.getElementById('result').innerText = "Error initializing Meet SDK.";
+      }
+    }
+
+    async function pickWinner() {
+      if (!session) return;
+
+      try {
+        const participants = await session.getParticipants();
+        if (!participants || participants.length === 0) {
+          alert("No participants detected.");
+          return;
+        }
+
+        const randomIndex = Math.floor(Math.random() * participants.length);
+        const chosenPerson = participants[randomIndex].displayName || "Anonymous Participant";
+
+        document.getElementById('result').innerText = `🎉 Chosen: ${chosenPerson}`;
+      } catch (err) {
+        console.error("Failed to fetch participants:", err);
+      }
+    }
+
+    window.addEventListener('load', init);
+  </script>
+</body>
+</html>
