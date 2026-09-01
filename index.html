@@ -118,7 +118,7 @@
 
       try {
         // Promote the view to Main Stage so ALL participants see it
-        await sidePanelClient.loadMainStageUrl(mainStageUrl.toString());
+        await sidePanelClient.loadToMainStageUrl(mainStageUrl.toString());
         document.getElementById('status').innerText = `Displayed: ${chosenPerson}`;
       } catch (err) {
         console.error("Failed to load Main Stage:", err);
@@ -129,7 +129,7 @@
     async function openMainStageOnly() {
       if (!sidePanelClient) return;
       const mainStageUrl = new URL('MainStage.html', window.location.href);
-      await sidePanelClient.loadMainStageUrl(mainStageUrl.toString());
+      await sidePanelClient.loadToMainStageUrl(mainStageUrl.toString());
     }
 
     window.addEventListener('load', init);
