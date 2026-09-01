@@ -61,7 +61,9 @@
       try {
         const addon = window.meet.addon;
         // Initializes the session preserving URL parameters passed by Meet
-        session = await addon.createAddonSession({});
+        session = await addon.createAddonSession({
+          cloudProjectNumber: "815597487049" 
+        });
         sidePanelClient = await session.createSidePanelClient();
       } catch (err) {
         console.error("Meet SDK setup failed:", err);
