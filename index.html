@@ -59,49 +59,46 @@
 
     let session;
     let sidePanelClient;
-    let mainAppClient;
 
     async function init() {
       try {
         const addon = window.meet.addon;
 
-        // Initialize session using the project number variable
+        // Create the session
         session = await addon.createAddonSession({
           cloudProjectNumber: CLOUD_PROJECT_NUMBER
         });
 
+        // Create the valid Side Panel Client
         sidePanelClient = await session.createSidePanelClient();
-        mainAppClient = await session.createMeetMainAppClient();
 
-        console.log("Meet SDK successfully initialized!");
+        // Optional: Log meeting code
+        const meetingInfo = await sidePanelClient.getMeetingInfo();
+        console.log("Meeting Code:", meetingInfo.meetingCode);
+
       } catch (err) {
         console.error("Meet SDK setup failed:", err);
         document.getElementById('result').innerText = "SDK Initialization Error";
       }
     }
 
-    async function pickWinner() {
-      if (!mainAppClient) return;
+    function pickWinner() {
+      const rawText = document.getElementById('namesInput').value;
+      const names = rawText.split('\n').map(n => n.trim()).filter(n => n.length > 0);
 
-      try {
-        const response = await mainAppClient.getMeetingParticipants();
-        const participants = response.participants;
-
-        if (!participants || participants.length === 0) {
-          alert("No participants detected.");
-          return;
-        }
-
-        const randomIndex = Math.floor(Math.random() * participants.length);
-        const chosenPerson = participants[randomIndex].displayName || "Anonymous Participant";
-
-        document.getElementById('result').innerText = `🎉 Chosen: ${chosenPerson}`;
-      } catch (err) {
-        console.error("Failed to fetch participants:", err);
+      if (names.length === 0) {
+        alert("Please enter at least one name.");
+        return;
       }
+
+      const randomIndex = Math.floor(Math.random() * names.length);
+      const chosenPerson = names[randomIndex];
+
+      document.getElementById('result').innerText = `🎉 Chosen: ${chosenPerson}`;
     }
 
     window.addEventListener('load', init);
+
   </script>
 </body>
 </html>
